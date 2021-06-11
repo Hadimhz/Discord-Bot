@@ -3,6 +3,8 @@ const fs = require('fs');
 
 let commandsCol = new Collection();
 
+let log = {}
+
 let checkForDuplicate = (current, commands) => {
     let duplicate = commands.find(x => x.name == current.name || x.alias.includes(current.name) || current.alias.includes(x.name) || current.alias.some(y => x.alias.includes(y))) || null;
 
@@ -39,7 +41,7 @@ let COMMANDS_PATH = __dirname + '/../commands';
 
 let loadCommands = () => {
 
-    let toReturn = {
+    log = {
         categories: [],
         errors: [],
         stats: {
@@ -56,25 +58,23 @@ let loadCommands = () => {
         let categories = fs.readdirSync(COMMANDS_PATH); // Get the list of categories.
 
         for (const category of categories) {
-            toReturn.stats.categories++;
+            log.stats.categories++;
 
             let _category = { name: category, children: [] };
 
             let commands = fs.readdirSync(COMMANDS_PATH + '/' + category) // Get the commands from each categories
 
-            for (const command of commands) { // Loop thru the commands.
+            let _command = {};
 
-                let _command = { name: command };
+            for (const command of commands) { // Loop thru the commands.
 
                 if ((command.startsWith('sub-') || command.startsWith('sub_')) && !command.endsWith('.js')) { // If the command has sub-commands
                     let name = command.toLowerCase().slice(4); // Get the name of the command by slicing `sub-` off.
 
-                    _command.name = name;
-
                     let subCommands = fs.readdirSync(COMMANDS_PATH + `/${category}/${command}`).filter(x => x.endsWith('.js')); // get the list of sub-commands.
 
                     if (!subCommands.map(x => x.toLowerCase()).includes(`${name}.js`)) {
-                        toReturn.errors.push({
+                        log.errors.push({
                             category,
                             command,
                             error: "Main sub-command Class not found!"
@@ -82,7 +82,7 @@ let loadCommands = () => {
 
                         continue;
                     } else if (subCommands.filter(x => x.toLowerCase() == name).length > 1) {
-                        toReturn.errors.push({
+                        log.errors.push({
                             category,
                             command,
                             error: "Found multiple of the same sub commands class!"
@@ -93,7 +93,7 @@ let loadCommands = () => {
                     let mainClass = require(COMMANDS_PATH + `/${category}/${command}/${name}.js`); // Load the main class to get the command info.
 
                     if (mainClass.info == null) {
-                        toReturn.errors.push({
+                        log.errors.push({
                             category,
                             command,
                             error: "Main sub-command class description missing!"
@@ -129,7 +129,7 @@ let loadCommands = () => {
 
                         if (subData.name == null || subData.run == null) { // if name or run are = to null
 
-                            toReturn.errors.push({
+                            log.errors.push({
                                 category,
                                 command,
                                 subCommand,
@@ -141,7 +141,7 @@ let loadCommands = () => {
 
                         let dupeCheck = checkForDuplicate(subData, (commandData.subCommands || [])); // Checking for dupelicates;
                         if (dupeCheck.status == true) {
-                            toReturn.errors.push({
+                            log.errors.push({
                                 category,
                                 command,
                                 subCommand,
@@ -155,7 +155,7 @@ let loadCommands = () => {
 
                     if (commandData.name == null || commandData.subCommands == null) { // if name or run are = to null
 
-                        toReturn.errors.push({
+                        log.errors.push({
                             category,
                             command,
                             subCommand,
@@ -164,7 +164,7 @@ let loadCommands = () => {
                         continue;
                     }
 
-                    _command.subCommands = commandData.subCommands;
+                    _command = commandData;
 
                     commandsCol.set(commandData.name, commandData) //Store command in the collection
 
@@ -175,7 +175,7 @@ let loadCommands = () => {
                     if (commandClass.info == null) commandClass.info = {};
 
                     let commandData = {
-                        name: commandClass.info.name || commandClass.split('.')[0].toLowerCase(),
+                        name: commandClass.info.name || command.split('.')[0].toLowerCase(),
                         category: category,
                         description: commandClass.info.description || "none",
                         usage: commandClass.info.usage || "",
@@ -187,8 +187,8 @@ let loadCommands = () => {
 
                     if (commandData.name == null || commandData.run == null) { // if name or run are = to null
 
-                        toReturn.stats.errors++;
-                        toReturn.errors.push({
+                        log.stats.errors++;
+                        log.errors.push({
                             category,
                             command,
                             error: "Name or run() are missing!"
@@ -198,7 +198,7 @@ let loadCommands = () => {
 
                     let dupeCheck = checkForDuplicate(commandData, (commandsCol.array() || [])); // Checking for dupelicates;
                     if (dupeCheck.status == true) {
-                        toReturn.errors.push({
+                        log.errors.push({
                             category,
                             command,
                             error: dupeCheck.duplicate
@@ -206,21 +206,21 @@ let loadCommands = () => {
                         continue;
                     }
 
-                    _command.name = commandData.name;
-
+                    _command = commandData;
                     commandsCol.set(commandData.name, commandData) //Store command in the collection
                 }
                 _category.children.push(_command);
             }
 
-            toReturn.stats.commands = toReturn.stats.commands + _category.children.length;
-            toReturn.stats.subCommands = toReturn.stats.subCommands + _category.children.filter(x => x.subCommands != null).reduce((a, b) => a + b.subCommands.length, 0);
-            toReturn.stats.errors = toReturn.errors.length;
+            log.stats.commands = log.stats.commands + _category.children.length;
+            log.stats.subCommands = log.stats.subCommands + _category.children.filter(x => x.subCommands != null).reduce((a, b) => a + b.subCommands.length, 0);
+            log.stats.errors = log.errors.length;
 
-            toReturn.categories.push(_category);
+            log.categories.push(_category);
         }
 
-        Resolve({ log: toReturn, commandsCol });
+        module.exports.log = log;
+        Resolve({ log: log, commandsCol });
     })
 
 }
@@ -229,4 +229,5 @@ let loadCommands = () => {
 
 module.exports = {
     loadCommands: loadCommands,
+    log
 }
