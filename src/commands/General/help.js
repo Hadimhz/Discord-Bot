@@ -9,7 +9,7 @@ module.exports.run = (bot, message, args) => {
         .setTitle("Help!").setColor("BLUE").setDescription("Commands Help list");
 
     if (args[0] == null) {
-        for (const category of parsed.categories.filter(x => x.name != '_ignore')) {
+        for (const category of parsed.categories.filter(x => x.name != '_ignored')) {
             embed.addField(category.name, "`" + category.children.map(x => x.name).join('`, `') + "`");
         }
     } else {
