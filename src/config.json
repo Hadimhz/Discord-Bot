@@ -1,5 +1,6 @@
 {
-    "token": "",
-    "guild": "",
-    "prefix": "."
+	"token": "",
+	"guild": "",
+	"prefix": ".",
+	"missing_permission": "You require the `{PERMISSION}` to use this command."
 }

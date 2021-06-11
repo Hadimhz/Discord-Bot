@@ -14,11 +14,15 @@ bot.on('message', async (message) => {
         if (cmd.subCommands != null) {
             if (args[0] != null) {
                 let subCommand = args.shift().toLowerCase();
-
                 let subcmd = cmd.subCommands.find(x => x.name == subCommand || x.alias.includes(subCommand));
-                console.log(subcmd);
 
                 if (subcmd != null) {
+
+                    if (subcmd.requiredPermission != null && !message.member.permissions.has(subcmd.requiredPermission)) { // Permission check
+                        message.channel.send(config.missing_permission.replace("{PERMISSION}", subcmd.requiredPermission)); // Missing permission message
+                        return;
+                    }
+
                     try {
                         subcmd.run(bot, message, args);
                     } catch (error) {
@@ -30,6 +34,12 @@ bot.on('message', async (message) => {
                 }
             }
         } else {
+
+            if (cmd.requiredPermission != null && !message.member.permissions.has(cmd.requiredPermission)) { // Permission check
+                message.channel.send(config.missing_permission.replace("{PERMISSION}", cmd.requiredPermission)); // Missing permission message
+                return;
+            }
+
             try {
                 cmd.run(bot, message, args);
             } catch (error) {

@@ -6,9 +6,9 @@ module.exports.run = (bot, message, args) => {
 
 
 module.exports.info = {
-    name: 'this',
-    descrition: "",
-    requiredPermission: null,
-    aliases: [],
-    usage: ''
+    name: 'this',// default = file name (without the extention)
+    description: "",// default is "None"
+    requiredPermission: null,// default is null
+    aliases: [], // default is null
+    usage: '' // default is null
 }

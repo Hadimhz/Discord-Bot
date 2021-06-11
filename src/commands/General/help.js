@@ -43,20 +43,20 @@ module.exports.run = (bot, message, args) => {
             else use = command;
 
             if (subcommand != null || args[1] == null) {
-                let usage = config.prefix + use.name + ' ' + use.usage;
+                let usage = config.prefix + ((args[1] != null && subcommand != null) ? `${command.name} ` : "") + use.name + ' ' + (use.usage == null ? "" : use.usage);
                 let aliases = "`" + use.alias.join('`, `') + "`"
                 let subCommands = use.subCommands != null ? `\`${use.subCommands.map(x => x.name).join('`, `')}\`` : null
 
                 let help = [
                     `**name:** ${use.name}`,
                     `**description:** ${use.description}`,
-                    `**aliases:** ${aliases}`,
+                    use.alias.length == 0 ? null : `**aliases:** ${aliases}`,
                     `**usage:** ${usage}`,
                     `**requiredPermission:** ${use.requiredPermission == null ? "none" : use.requiredPermission}`,
-                    subCommands != null ? `**subcommands:** ${subCommands}` : ""
+                    subCommands != null ? `**subcommands:** ${subCommands}` : null
                 ]
 
-                embed.addField(`${command.name}'s Help:`, help.join('\n'))
+                embed.addField(`${command.name}'s Help:`, help.filter(x => x != null).join('\n'))
             }
         }
 
@@ -67,9 +67,9 @@ module.exports.run = (bot, message, args) => {
 
 
 module.exports.info = {
-    name: 'help',
-    descrition: "Shows you the list of commands.",
-    requiredPermission: null,
-    aliases: ['?', "h"],
-    usage: '[command] [subcommand]'
+    name: 'help',// default = file name (without the extention)
+    description: "Shows you the list of commands.",// default is "None"
+    requiredPermission: null,// default is null
+    aliases: ['?', "h"], // default is null
+    usage: '[command] [subcommand]' // default is null
 }

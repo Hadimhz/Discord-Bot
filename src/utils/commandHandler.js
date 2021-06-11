@@ -1,4 +1,4 @@
-const { Collection } = require('discord.js')
+const { Collection, Permissions } = require('discord.js')
 const fs = require('fs');
 
 let commandsCol = new Collection();
@@ -37,6 +37,10 @@ let checkForDuplicate = (current, commands) => {
 }
 
 
+let checkPermission = (permission) => {
+    return Object.keys(Permissions.FLAGS).includes(permission);
+}
+
 let COMMANDS_PATH = __dirname + '/../commands';
 
 let loadCommands = () => {
@@ -68,46 +72,24 @@ let loadCommands = () => {
 
             for (const command of commands) { // Loop thru the commands.
 
-                if ((command.startsWith('sub-') || command.startsWith('sub_')) && !command.endsWith('.js')) { // If the command has sub-commands
-                    let name = command.toLowerCase().slice(4); // Get the name of the command by slicing `sub-` off.
+                if (!command.endsWith('.js')) { // If the command has sub-commands
+                    let name = command.toLowerCase(); // Get the name of the command by slicing `sub-` off.
 
                     let subCommands = fs.readdirSync(COMMANDS_PATH + `/${category}/${command}`).filter(x => x.endsWith('.js')); // get the list of sub-commands.
 
-                    if (!subCommands.map(x => x.toLowerCase()).includes(`${name}.js`)) {
-                        log.errors.push({
-                            category,
-                            command,
-                            error: "Main sub-command Class not found!"
-                        })
+                    let mainClass;
 
-                        continue;
-                    } else if (subCommands.filter(x => x.toLowerCase() == name).length > 1) {
-                        log.errors.push({
-                            category,
-                            command,
-                            error: "Found multiple of the same sub commands class!"
-                        })
-                        continue;
-                    }
+                    if (!subCommands.map(x => x.toLowerCase()).includes(`${name}.js`)) mainClass = { info: name } // load default values
+                    else mainClass = require(COMMANDS_PATH + `/${category}/${command}/${name}.js`); // Load the main class to get the command info.
 
-                    let mainClass = require(COMMANDS_PATH + `/${category}/${command}/${name}.js`); // Load the main class to get the command info.
-
-                    if (mainClass.info == null) {
-                        log.errors.push({
-                            category,
-                            command,
-                            error: "Main sub-command class description missing!"
-                        })
-                        continue;
-                    }
+                    if (mainClass.info == null) mainClass.info = {};
 
                     let commandData = {
-                        name: mainClass.info.name,
+                        name: mainClass.info.name || name,
                         category: category,
                         description: mainClass.info.description || "none",
-                        usage: mainClass.info.usage || "",
                         alias: mainClass.info.aliases || [],
-                        requiredPermission: mainClass.info.requiredPermission || null,
+                        requiredPermission: ((mainClass.info.requiredPermission != null && mainClass.info.requiredPermission == "") ? null : mainClass.info.requiredPermission) || null,
                         subCommands: null
                     };
 
@@ -119,12 +101,23 @@ let loadCommands = () => {
                         let subData = {
                             name: subClass.info.name || subCommand.split('.')[0].toLowerCase(),
                             description: subClass.info.description || "none",
-                            usage: subClass.info.usage || "",
+                            usage: ((subClass.info.usage != null && subClass.info.usage.trim() == "") ? null : subClass.info.usage) || null,
                             alias: subClass.info.aliases || [],
-                            requiredPermission: subClass.info.requiredPermission || null,
+                            requiredPermission: ((subClass.info.requiredPermission != null && subClass.info.requiredPermission == "") ? null : subClass.info.requiredPermission) || null,
                             mainCommand: commandData.name,
                             file: subCommand,
                             run: subClass.run,
+                        }
+
+                        if (subData.requiredPermission != null && checkPermission(subData.requiredPermission) == false) {
+                            log.errors.push({
+                                category,
+                                command,
+                                subCommand,
+                                error: `"${subData.requiredPermission}" is not a valid permission. check https://discord.com/developers/docs/topics/permissions for more infromation`
+                            })
+
+                            continue;
                         }
 
                         if (subData.name == null || subData.run == null) { // if name or run are = to null
@@ -178,9 +171,9 @@ let loadCommands = () => {
                         name: commandClass.info.name || command.split('.')[0].toLowerCase(),
                         category: category,
                         description: commandClass.info.description || "none",
-                        usage: commandClass.info.usage || "",
+                        usage: ((commandClass.info.usage != null && commandClass.info.usage.trim() == "") ? null : commandClass.info.usage) || null,
                         alias: commandClass.info.aliases || [],
-                        requiredPermission: commandClass.info.requiredPermission || null,
+                        requiredPermission: ((commandClass.info.requiredPermission != null && commandClass.info.requiredPermission == "") ? null : commandClass.info.requiredPermission) || null,
                         file: command,
                         run: commandClass.run,
                     };
@@ -224,8 +217,6 @@ let loadCommands = () => {
     })
 
 }
-
-
 
 module.exports = {
     loadCommands: loadCommands,
