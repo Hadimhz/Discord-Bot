@@ -227,6 +227,4 @@ let loadCommands = () => {
 
 
 
-module.exports = {
-    loadCommands: loadCommands,
-}
+module.exports = loadCommands
