@@ -132,7 +132,7 @@ let loadCommands = () => {
                             continue;
                         }
 
-                        let dupeCheck = checkForDuplicate(subData, (commandData.subCommands || [])); // Checking for dupelicates;
+                        let dupeCheck = checkForDuplicate(subData, (commandData.subCommands || [])); // Checking for Duplicates;
                         if (dupeCheck.status == true) {
                             log.errors.push({
                                 category,
@@ -189,7 +189,7 @@ let loadCommands = () => {
                         continue;
                     }
 
-                    let dupeCheck = checkForDuplicate(commandData, (commandsCol.array() || [])); // Checking for dupelicates;
+                    let dupeCheck = checkForDuplicate(commandData, (commandsCol.array() || [])); // Checking for Duplicates;
                     if (dupeCheck.status == true) {
                         log.errors.push({
                             category,
