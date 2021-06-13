@@ -66,6 +66,10 @@ module.exports.run = (bot, message, args) => {
 }
 
 
+/**
+ * This is completely optional...
+ */
+
 module.exports.info = {
     name: 'help',// default = file name (without the extention)
     description: "Shows you the list of commands.",// default is "None"

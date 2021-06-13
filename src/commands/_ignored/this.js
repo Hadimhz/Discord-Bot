@@ -5,6 +5,10 @@ module.exports.run = (bot, message, args) => {
 }
 
 
+/**
+ * This is completely optional...
+ */
+
 module.exports.info = {
     name: 'this',// default = file name (without the extention)
     description: "",// default is "None"

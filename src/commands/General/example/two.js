@@ -5,8 +5,9 @@ module.exports.run = (bot, message, args) => {
 
 
 /**
- * modules.exports.info is completely optional
+ * This is completely optional...
  */
+
 module.exports.info = {
     name: 'two', // default = file name (without the extention)
     description: "subcommands example 2", // default is "None"
