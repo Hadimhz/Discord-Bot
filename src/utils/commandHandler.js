@@ -1,12 +1,29 @@
 const { Collection, Permissions } = require('discord.js')
 const fs = require('fs');
 
-let commandsCol = new Collection();
+let log = {
+    categories: [],
+    errors: [],
+    stats: {
+        categories: 0,
+        commands: 0,
+        subCommands: 0,
+        errors: 0
+    }
+}
 
-let log = {}
+let merge = (x, y) => {
+    for (const [key, value] of Object.entries(y)) {
+        x[key] = value;
+    }
+    return x;
+}
 
 let checkForDuplicate = (current, commands) => {
-    let duplicate = commands.find(x => x.name == current.name || x.alias.includes(current.name) || current.alias.includes(x.name) || current.alias.some(y => x.alias.includes(y))) || null;
+    let duplicate = commands.find(x => x.name == current.name ||
+        x.alias.includes(current.name) ||
+        current.alias.includes(x.name) ||
+        current.alias.some(y => x.alias.includes(y))) || null;
 
     let toReturn = {
         status: duplicate != null,
@@ -43,179 +60,106 @@ let checkPermission = (permission) => {
 
 let COMMANDS_PATH = __dirname + '/../commands';
 
-let loadCommands = () => {
+let defaultCommands = {
+    categories: [],
+    errors: [],
+    stats: {
+        categories: 0,
+        commands: 0,
+        subCommands: 0,
+        errors: 0
+    }
+}
 
-    log = {
-        categories: [],
-        errors: [],
-        stats: {
-            categories: 0,
-            commands: 0,
-            subCommands: 0,
-            errors: 0
-        }
+let loadCommands = (rootPath) => {
+    let toReturn = {
+        commandsCol: new Collection(),
+        logs: defaultCommands
     }
 
-    return new Promise((Resolve) => {
+    return new Promise((Resolve, Reject) => {
 
-        // << Command Handler >>
-        let categories = fs.readdirSync(COMMANDS_PATH); // Get the list of categories.
+        let load = (path, parent) => {
 
-        for (const category of categories) {
-            log.stats.categories++;
+            let _toReturn = []
 
-            let _category = { name: category, children: [] };
+            let files = fs.readdirSync(path); // Get the list of commands.
+            for (const file of files) {
 
-            let commands = fs.readdirSync(COMMANDS_PATH + '/' + category) // Get the commands from each categories
+                let _command = {
+                    name: file.split('.')[0].toLowerCase(),
+                    description: "none",
+                    usage: null,
+                    alias: [],
+                    requiredPermission: null,
+                    path: path.split('\\').pop(),
+                    size: 0,
+                    file: file,
+                    errors: [],
+                    // subCommands: null,
+                    // run: null,
+                };
 
-            let _command = {};
+                let stats = fs.statSync(`${path}/${file}`);
 
-            for (const command of commands) { // Loop thru the commands.
+                if (stats.isDirectory()) { // If the command is a folder
 
-                if (!command.endsWith('.js')) { // If the command has sub-commands
-                    let name = command.toLowerCase(); // Get the name of the command by slicing `sub-` off.
-
-                    let subCommands = fs.readdirSync(COMMANDS_PATH + `/${category}/${command}`).filter(x => x.endsWith('.js')); // get the list of sub-commands.
-
-                    let mainClass;
-
-                    if (!subCommands.map(x => x.toLowerCase()).includes(`${name}.js`)) mainClass = { info: name } // load default values
-                    else mainClass = require(COMMANDS_PATH + `/${category}/${command}/${name}.js`); // Load the main class to get the command info.
-
-                    if (mainClass.info == null) mainClass.info = {};
-
-                    let commandData = {
-                        name: mainClass.info.name || name,
-                        category: category,
-                        description: mainClass.info.description || "none",
-                        alias: mainClass.info.aliases || [],
-                        requiredPermission: ((mainClass.info.requiredPermission != null && mainClass.info.requiredPermission == "") ? null : mainClass.info.requiredPermission) || null,
-                        subCommands: null
-                    };
-
-                    for (const subCommand of subCommands.filter(x => x != name + '.js')) { // Loop thru all sub-commands except the "main class"
-                        let subClass = require(COMMANDS_PATH + `/${category}/${command}/${subCommand}`); // Get the sub-command Class
-
-                        if (subClass.info == null) subClass.info = {};
-
-                        let subData = {
-                            name: subClass.info.name || subCommand.split('.')[0].toLowerCase(),
-                            description: subClass.info.description || "none",
-                            usage: ((subClass.info.usage != null && subClass.info.usage.trim() == "") ? null : subClass.info.usage) || null,
-                            alias: subClass.info.aliases || [],
-                            requiredPermission: ((subClass.info.requiredPermission != null && subClass.info.requiredPermission == "") ? null : subClass.info.requiredPermission) || null,
-                            mainCommand: commandData.name,
-                            file: subCommand,
-                            run: subClass.run,
-                        }
-
-                        if (subData.requiredPermission != null && checkPermission(subData.requiredPermission) == false) {
-                            log.errors.push({
-                                category,
-                                command,
-                                subCommand,
-                                error: `"${subData.requiredPermission}" is not a valid permission. check https://discord.com/developers/docs/topics/permissions for more infromation`
-                            })
-
-                            continue;
-                        }
-
-                        if (subData.name == null || subData.run == null) { // if name or run are = to null
-
-                            log.errors.push({
-                                category,
-                                command,
-                                subCommand,
-                                error: "Name or run() are missing!"
-                            })
-
-                            continue;
-                        }
-
-                        let dupeCheck = checkForDuplicate(subData, (commandData.subCommands || [])); // Checking for Duplicates;
-                        if (dupeCheck.status == true) {
-                            log.errors.push({
-                                category,
-                                command,
-                                subCommand,
-                                error: dupeCheck.duplicate
-                            })
-                            continue;
-                        }
-
-                        commandData.subCommands = commandData.subCommands == null ? [subData] : [...commandData.subCommands, subData]; // Push subcommand to commandData
+                    let _files = fs.readdirSync(`${path}/${file}`);
+                    let main = _files.find(x => x.toLowerCase() == file.toLowerCase() + '.js')
+                    if (main) {
+                        let command = require(`${path}/${file}/${main}`);
+                        _command = merge(_command, command.info || {})
                     }
-
-                    if (commandData.name == null || commandData.subCommands == null) { // if name or run are = to null
-
-                        log.errors.push({
-                            category,
-                            command,
-                            subCommand,
-                            error: "Name or subCommands are missing!"
-                        })
-                        continue;
-                    }
-
-                    _command = commandData;
-
-                    commandsCol.set(commandData.name, commandData) //Store command in the collection
-
+                    _command.subCommands = load(`${path}/${file}`, _command);
                 } else {
 
-                    let commandClass = require(COMMANDS_PATH + `/${category}/${command}`); // Load the main class to get the command info.
+                    _command.size = stats.size;
+                    if (parent != null && (parent.file.toLowerCase() + '.js') == file.toLowerCase()) continue;
+                    let command = require(`${path}/${file}`);
 
-                    if (commandClass.info == null) commandClass.info = {};
-
-                    let commandData = {
-                        name: commandClass.info.name || command.split('.')[0].toLowerCase(),
-                        category: category,
-                        description: commandClass.info.description || "none",
-                        usage: ((commandClass.info.usage != null && commandClass.info.usage.trim() == "") ? null : commandClass.info.usage) || null,
-                        alias: commandClass.info.aliases || [],
-                        requiredPermission: ((commandClass.info.requiredPermission != null && commandClass.info.requiredPermission == "") ? null : commandClass.info.requiredPermission) || null,
-                        file: command,
-                        run: commandClass.run,
-                    };
-
-                    if (commandData.name == null || commandData.run == null) { // if name or run are = to null
-
-                        log.stats.errors++;
-                        log.errors.push({
-                            category,
-                            command,
-                            error: "Name or run() are missing!"
-                        })
-                        continue;
-                    }
-
-                    let dupeCheck = checkForDuplicate(commandData, (commandsCol.array() || [])); // Checking for Duplicates;
-                    if (dupeCheck.status == true) {
-                        log.errors.push({
-                            category,
-                            command,
-                            error: dupeCheck.duplicate
-                        })
-                        continue;
-                    }
-
-                    _command = commandData;
-                    commandsCol.set(commandData.name, commandData) //Store command in the collection
+                    _command = merge(_command, command.info || {});
+                    _command.run = command.run || ((bot, message, args) => console.log("WORKS!"));
                 }
-                _category.children.push(_command);
+
+                let dupeCheck = checkForDuplicate(_command, (_toReturn || [])); // Checking for Duplicates;
+                if (dupeCheck.status == true) {
+                    _command.errors.push({
+                        path: _command.path + '/' + _command.file,
+                        error: dupeCheck.duplicate
+                    })
+                }
+
+                if (_command.requiredPermission != null && checkPermission(_command.requiredPermission) == false) {
+                    _command.errors.push({
+                        path: _command.path + '/' + _command.file,
+                        error: `"${_command.requiredPermission}" is not a valid permission. check https://discord.com/developers/docs/topics/permissions for more infromation`
+                    })
+                }
+
+                if (_command.errors.length == 0) delete _command.errors;
+                else {
+                    toReturn.logs.errors = toReturn.logs.errors.concat(_command.errors)
+                }
+                _toReturn.push(_command);
             }
 
-            log.stats.commands = log.stats.commands + _category.children.length;
-            log.stats.subCommands = log.stats.subCommands + _category.children.filter(x => x.subCommands != null).reduce((a, b) => a + b.subCommands.length, 0);
-            log.stats.errors = log.errors.length;
-
-            log.categories.push(_category);
+            _toReturn = _toReturn.filter(x => x.errors == null);
+            toReturn.logs.stats.commands = toReturn.logs.stats.commands + _toReturn.length;
+            toReturn.logs.stats.subCommands = toReturn.logs.stats.subCommands + _toReturn.filter(x => x.subCommands != null && x.run == null).length;
+            return _toReturn;
         }
 
-        module.exports.log = log;
-        Resolve({ log: log, commandsCol });
-    })
 
+        let files = fs.readdirSync(rootPath); // Get the list of categories.
+
+        for (const file of files) {
+            toReturn.logs.categories.push({ name: file, children: load(`${rootPath}/${file}`) });
+        }
+
+        toReturn.logs.stats.errors = toReturn.logs.errors.length;
+        toReturn.logs.stats.categories = files.length;
+        Resolve(toReturn);
+    })
 }
 
 module.exports = {

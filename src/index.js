@@ -20,19 +20,19 @@ events.forEach(x => {
     }
 });
 
-loadCommands().then(x => {
-    fs.writeFileSync(ROOT_PATH + '/../log.json', JSON.stringify(x.log, null, 2));
-    bot.commands = x.commandsCol;
-    if (x.log.stats.errors != 0)
+loadCommands(`${ROOT_PATH}/commands`).then(x => {
+    console.log(x);
+    fs.writeFileSync(ROOT_PATH + '/../log.json', JSON.stringify(x.logs, null, 2));
+    // bot.commands = x.commandspCol;
+
+    if (x.logs.stats.errors != 0)
         console.log(chalk.bgRedBright("[ERROR]"), `An error occured while loading commands, please check`, chalk.bgWhite("log.json"), `for more information.`);
 
-    console.log(chalk.bgCyan("[CommandHandler]"), `Loaded a total of ${x.log.stats.commands} commands in ${x.log.stats.categories} categories.`);
-}).catch(x => { console.error(x);; process.exit() });
+    console.log(chalk.bgCyan("[CommandHandler]"), `Loaded a total of ${x.logs.stats.commands} commands in ${x.logs.stats.categories} categories.`);
+})
 
 bot.on('ready', () => {
-
     console.log("online");
-
 });
 
 bot.login(config.token);
