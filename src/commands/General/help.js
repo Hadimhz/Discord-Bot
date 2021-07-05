@@ -16,7 +16,7 @@ module.exports.run = (bot, message, args) => {
 
         args[0] = args[0].toLowerCase();
 
-        let command = bot.commands.find(x => x.name == args[0] || x.alias.includes(args[0]));
+        let command = bot.commands.find(x => x.name == args[0] || x.aliases.includes(args[0]));
 
         if (command == null) {
 
@@ -31,7 +31,7 @@ module.exports.run = (bot, message, args) => {
 
                 args[1] = args[1].toLowerCase();
 
-                subcommand = command.subCommands != null ? command.subCommands.find(x => x.name == args[1] || x.alias.includes(args[1])) : null;
+                subcommand = command.subCommands != null ? command.subCommands.find(x => x.name == args[1] || x.aliases.includes(args[1])) : null;
 
                 if (command.subCommands == null) {
                     embed.setDescription(`Couldn't find any command with the name or alias "${command.name}/${args[1]}"!\nPlease double check your spelling and try again later.`)
@@ -44,13 +44,13 @@ module.exports.run = (bot, message, args) => {
 
             if (subcommand != null || args[1] == null) {
                 let usage = config.prefix + ((args[1] != null && subcommand != null) ? `${command.name} ` : "") + use.name + ' ' + (use.usage == null ? "" : use.usage);
-                let aliases = "`" + use.alias.join('`, `') + "`"
+                let aliases = "`" + use.aliases.join('`, `') + "`"
                 let subCommands = use.subCommands != null ? `\`${use.subCommands.map(x => x.name).join('`, `')}\`` : null
 
                 let help = [
                     `**name:** ${use.name}`,
                     `**description:** ${use.description}`,
-                    use.alias.length == 0 ? null : `**aliases:** ${aliases}`,
+                    use.aliases.length == 0 ? null : `**aliases:** ${aliases}`,
                     `**usage:** ${usage}`,
                     `**requiredPermission:** ${use.requiredPermission == null ? "none" : use.requiredPermission}`,
                     subCommands != null ? `**subcommands:** ${subCommands}` : null
