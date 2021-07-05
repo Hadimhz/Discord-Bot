@@ -19,11 +19,11 @@ let merge = (x, y) => {
     return x;
 }
 
-let checkForDuplicate = (current, commands) => {
+let checkForDuplicate = (current, commands, includePath = false) => {
     let duplicate = commands.find(x => x.name == current.name ||
-        x.alias.includes(current.name) ||
-        current.alias.includes(x.name) ||
-        current.alias.some(y => x.alias.includes(y))) || null;
+        x.aliases.includes(current.name) ||
+        current.aliases.includes(x.name) ||
+        current.aliases.some(y => x.aliases.includes(y))) || null;
 
     let toReturn = {
         status: duplicate != null,
@@ -33,19 +33,25 @@ let checkForDuplicate = (current, commands) => {
     }
 
     if (duplicate != null) {
+
+        if (includePath != null) {
+            current.file = current.path + '/' + current.file
+            duplicate.file = duplicate.path + '/' + duplicate.file
+        }
+
         if (current.name == duplicate.name) {
             toReturn.duplicate.push(`${current.file} shares the same name variable with ${duplicate.file}`);
         }
 
-        if (duplicate.alias.includes(current.name)) {
+        if (duplicate.aliases.includes(current.name)) {
             toReturn.duplicate.push(`${current.file}'s name was found is ${duplicate.file}'s aliases`);
         }
 
-        if (current.alias.includes(duplicate.name)) {
+        if (current.aliases.includes(duplicate.name)) {
             toReturn.duplicate.push(`${duplicate.file}'s name was found is ${current.file}'s aliases`);
         }
 
-        for (const alias of current.alias.filter(y => duplicate.alias.includes(y))) {
+        for (const alias of current.aliases.filter(y => duplicate.aliases.includes(y))) {
             toReturn.duplicate.push(`${current.file} and ${duplicate.file} both have the same alias ("${alias}")`);
         }
     }
@@ -67,7 +73,8 @@ let defaultCommands = {
         categories: 0,
         commands: 0,
         subCommands: 0,
-        errors: 0
+        errors: 0,
+        time: 0
     }
 }
 
@@ -76,8 +83,9 @@ let loadCommands = (rootPath) => {
         commandsCol: new Collection(),
         logs: defaultCommands
     }
-
     return new Promise((Resolve, Reject) => {
+
+        toReturn.logs.stats.time = Date.now();
 
         let load = (path, parent) => {
 
@@ -90,18 +98,20 @@ let loadCommands = (rootPath) => {
                     name: file.split('.')[0].toLowerCase(),
                     description: "none",
                     usage: null,
-                    alias: [],
+                    aliases: [],
                     requiredPermission: null,
                     path: path.split('\\').pop(),
                     size: 0,
+                    depth: (!parent ? 0 : parent.depth),
                     file: file,
                     errors: [],
                     // subCommands: null,
                     // run: null,
                 };
 
-                let stats = fs.statSync(`${path}/${file}`);
+                _command.depth++;
 
+                let stats = fs.statSync(`${path}/${file}`);
                 if (stats.isDirectory()) { // If the command is a folder
 
                     let _files = fs.readdirSync(`${path}/${file}`);
@@ -110,22 +120,25 @@ let loadCommands = (rootPath) => {
                         let command = require(`${path}/${file}/${main}`);
                         _command = merge(_command, command.info || {})
                     }
+                    _command.usage = `${parent != null ? `${parent.usage} ` : ''}${_command.name}${(_command.usage == null || _command.usage.trim().length == 0) ? '' : " " + _command.usage.trim()}`;
+
                     _command.subCommands = load(`${path}/${file}`, _command);
                 } else {
-
                     _command.size = stats.size;
                     if (parent != null && (parent.file.toLowerCase() + '.js') == file.toLowerCase()) continue;
                     let command = require(`${path}/${file}`);
 
                     _command = merge(_command, command.info || {});
+                    _command.usage = `${parent != null ? `${parent.usage} ` : ''}${_command.name}${(_command.usage == null || _command.usage.trim().length == 0) ? '' : " " + _command.usage.trim()}`;
+
                     _command.run = command.run || ((bot, message, args) => console.log("WORKS!"));
                 }
 
-                let dupeCheck = checkForDuplicate(_command, (_toReturn || [])); // Checking for Duplicates;
-                if (dupeCheck.status == true) {
+                let dirDupeCheck = checkForDuplicate(_command, (_toReturn || [])); // Checking for in this directory;
+                if (dirDupeCheck.status == true) {
                     _command.errors.push({
                         path: _command.path + '/' + _command.file,
-                        error: dupeCheck.duplicate
+                        error: dirDupeCheck.duplicate
                     })
                 }
 
@@ -136,16 +149,31 @@ let loadCommands = (rootPath) => {
                     })
                 }
 
-                if (_command.errors.length == 0) delete _command.errors;
+                if (parent == null) {
+                    let DupeCheck = checkForDuplicate(_command, (toReturn.commandsCol.array() || []), true); // Checking for in this directory;
+                    if (DupeCheck.status == true) {
+                        _command.errors.push({
+                            path: _command.path + '/' + _command.file,
+                            error: DupeCheck.duplicate
+                        })
+                    }
+                }
+
+                if (_command.errors.length == 0) {
+                    delete _command.errors;
+                    if (parent == null) toReturn.commandsCol.set(_command.name, _command);
+                }
                 else {
                     toReturn.logs.errors = toReturn.logs.errors.concat(_command.errors)
                 }
+
                 _toReturn.push(_command);
             }
 
             _toReturn = _toReturn.filter(x => x.errors == null);
             toReturn.logs.stats.commands = toReturn.logs.stats.commands + _toReturn.length;
             toReturn.logs.stats.subCommands = toReturn.logs.stats.subCommands + _toReturn.filter(x => x.subCommands != null && x.run == null).length;
+
             return _toReturn;
         }
 
@@ -158,6 +186,12 @@ let loadCommands = (rootPath) => {
 
         toReturn.logs.stats.errors = toReturn.logs.errors.length;
         toReturn.logs.stats.categories = files.length;
+        toReturn.logs.stats.time = Date.now() - toReturn.logs.stats.time;
+
+        // save and output log
+        log = toReturn.logs;
+        module.exports.log = log;
+
         Resolve(toReturn);
     })
 }
