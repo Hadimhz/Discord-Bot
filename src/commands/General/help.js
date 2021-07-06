@@ -3,7 +3,7 @@ const config = require(ROOT_PATH + '/config.json');
 
 module.exports.run = (bot, message, args) => {
 
-    let { log: parsed } = require(ROOT_PATH + '/utils/commandHandler');
+    let { log: parsed, findCommand } = require(ROOT_PATH + '/utils/commandHandler');
 
     let embed = new MessageEmbed()
         .setTitle("Help!").setColor("BLUE").setDescription("Commands Help list");
@@ -14,50 +14,26 @@ module.exports.run = (bot, message, args) => {
         }
     } else {
 
-        args[0] = args[0].toLowerCase();
+        let cmd = findCommand([...args], bot.commands);
 
-        let command = bot.commands.find(x => x.name == args[0] || x.aliases.includes(args[0]));
-
-        if (command == null) {
-
-            embed.setColor("RED")
-                .setDescription(`Couldn't find any command with the name or alias "${args[0]}"!\nPlease double check your spelling and try again later.`);
-
+        if (cmd == null) {
+            embed.setDescription(`Couldn't find a command with the name ${args[0]}.`).setColor("RED");
         } else {
+            let usage = config.prefix + cmd.usage;
 
-            let subcommand;
+            let aliases = "`" + cmd.aliases.join('`, `') + "`";
+            let subCommands = cmd.subCommands != null ? `\`${cmd.subCommands.map(x => x.name).join('`, `')}\`` : null;
 
-            if (args[1]) {
+            let help = [
+                `**name:** ${cmd.name}`,
+                `**description:** ${cmd.description}`,
+                cmd.aliases.length == 0 ? null : `**aliases:** ${aliases}`,
+                `**usage:** ${usage}`,
+                `**requiredPermission:** ${cmd.requiredPermission == null ? "none" : cmd.requiredPermission}`,
+                subCommands != null ? `**subcommands:** ${subCommands}` : null
+            ]
 
-                args[1] = args[1].toLowerCase();
-
-                subcommand = command.subCommands != null ? command.subCommands.find(x => x.name == args[1] || x.aliases.includes(args[1])) : null;
-
-                if (command.subCommands == null) {
-                    embed.setDescription(`Couldn't find any command with the name or alias "${command.name}/${args[1]}"!\nPlease double check your spelling and try again later.`)
-                }
-            }
-
-            let use;
-            if (args[1] != null && subcommand != null) use = subcommand;
-            else use = command;
-
-            if (subcommand != null || args[1] == null) {
-                let usage = config.prefix + ((args[1] != null && subcommand != null) ? `${command.name} ` : "") + use.name + ' ' + (use.usage == null ? "" : use.usage);
-                let aliases = "`" + use.aliases.join('`, `') + "`"
-                let subCommands = use.subCommands != null ? `\`${use.subCommands.map(x => x.name).join('`, `')}\`` : null
-
-                let help = [
-                    `**name:** ${use.name}`,
-                    `**description:** ${use.description}`,
-                    use.aliases.length == 0 ? null : `**aliases:** ${aliases}`,
-                    `**usage:** ${usage}`,
-                    `**requiredPermission:** ${use.requiredPermission == null ? "none" : use.requiredPermission}`,
-                    subCommands != null ? `**subcommands:** ${subCommands}` : null
-                ]
-
-                embed.addField(`${command.name}'s Help:`, help.filter(x => x != null).join('\n'))
-            }
+            embed.addField(`${args.slice(0, cmd.depth).join(' ')}'s Help:`, help.filter(x => x != null).join('\n'))
         }
 
     }
