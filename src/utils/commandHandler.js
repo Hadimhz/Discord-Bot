@@ -1,5 +1,6 @@
 const { Collection, Permissions } = require('discord.js')
 const fs = require('fs');
+const config = require('../config.json');
 
 let log = {
     categories: [],
@@ -64,8 +65,6 @@ let checkPermission = (permission) => {
     return Object.keys(Permissions.FLAGS).includes(permission);
 }
 
-let COMMANDS_PATH = __dirname + '/../commands';
-
 let defaultCommands = {
     categories: [],
     errors: [],
@@ -75,6 +74,28 @@ let defaultCommands = {
         subCommands: 0,
         errors: 0,
         time: 0
+    }
+}
+
+let findCommand = (list, commandsList, message) => {
+    let cmd;
+    let args = [...list];
+    while (list.length > 0 && (cmd != null || args.length == list.length)) {
+        let command = list.shift().toLowerCase();
+        let temp;
+
+        if (cmd == null) temp = commandsList.find(x => x.name == command || x.aliases.includes(command));
+        else if (cmd != null && cmd.subCommands != null) temp = cmd.subCommands.find(x => x.name == command || x.aliases.includes(command));
+
+        if (message != null) {
+            if (temp != null && temp.requiredPermission != null && !message.member.permissions.has(temp.requiredPermission)) { // Permission check
+                message.channel.send({ content: config.missing_permission.replace("{PERMISSION}", temp.requiredPermission) }); // Missing permission message
+                return;
+            }
+        }
+
+        if (temp != null) cmd = temp;
+        if (temp == null || list.length == 0) return cmd;
     }
 }
 
@@ -197,6 +218,7 @@ let loadCommands = (rootPath) => {
 }
 
 module.exports = {
-    loadCommands: loadCommands,
+    loadCommands,
+    findCommand,
     log
 }
