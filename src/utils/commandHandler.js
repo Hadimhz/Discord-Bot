@@ -166,7 +166,7 @@ let loadCommands = (rootPath) => {
                 if (_command.requiredPermission != null && checkPermission(_command.requiredPermission) == false) {
                     _command.errors.push({
                         path: _command.path + '/' + _command.file,
-                        error: `"${_command.requiredPermission}" is not a valid permission. check https://discord.com/developers/docs/topics/permissions for more infromation`
+                        error: `"${_command.requiredPermission}" is not a valid permission. check https://discord.com/developers/docs/topics/permissions for more information`
                     })
                 }
 
