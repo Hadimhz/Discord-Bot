@@ -17,7 +17,7 @@ bot.on('message', async (message) => {
 
         if (cmd.subCommands == null) {
             try {
-                cmd.run(bot, message, args);
+                cmd.run(bot, message, args, commandTree);
             } catch (error) {
                 console.log(chalk.bgRedBright("[ERROR]"), `An error occured while trying to execute the ${cmd.name} command!`);
                 console.log(error);
