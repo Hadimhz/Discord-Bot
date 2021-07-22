@@ -4,7 +4,7 @@ let { bot } = require('../index');
 const config = require(ROOT_PATH + '/config.json');
 const { findCommand } = require('../utils/commandHandler');
 
-bot.on('message', async (message) => {
+bot.on('messageCreate', async (message) => {
     if (message.channel.type == 'dm' || message.author.bot == true || message.guild.id != config.guild || !message.content.startsWith(config.prefix)) return;
 
     let args = message.content.trim().slice(config.prefix.length).split(/ +/);
@@ -25,10 +25,10 @@ bot.on('message', async (message) => {
         } else {
 
             message.channel.send({
-                embed: new MessageEmbed()
+                embeds: [new MessageEmbed()
                     .setColor("PURPLE").setTitle(commandTree.join(" ") + "'s subcommands")
                     .setDescription(cmd.subCommands.map(x => `**${x.name}** - \`${x.description}\`\n*usage:* \`${x.usage}\``).join('\n\n'))
-                    .setFooter(`Executed by ${message.author.tag}`).setTimestamp()
+                    .setFooter(`Executed by ${message.author.tag}`).setTimestamp()]
             })
 
         }
