@@ -4,11 +4,8 @@ const fs = require('fs');
 const config = require('./config.json');
 
 const { loadCommands } = require('./utils/commandHandler');
-<<<<<<< Updated upstream
-let bot = new Discord.Client();
-=======
-let bot = new Discord.Client({
 
+let bot = new Discord.Client({
     intents: ["GUILDS", "GUILD_MEMBERS", "GUILD_BANS",
         "GUILD_INTEGRATIONS", "GUILD_WEBHOOKS", "GUILD_INVITES",
         "GUILD_VOICE_STATES", "GUILD_PRESENCES", "GUILD_MESSAGES",
@@ -20,7 +17,6 @@ let bot = new Discord.Client({
         repliedUser: true
     },
 })
->>>>>>> Stashed changes
 
 exports.bot = bot;
 global.ROOT_PATH = __dirname;
