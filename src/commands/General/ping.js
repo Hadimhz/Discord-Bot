@@ -3,7 +3,7 @@ const { MessageEmbed } = require("discord.js")
 
 module.exports.run = async (bot, message, args) => {
     message.channel.send({
-        embed: new MessageEmbed().setTitle("Pong!").setColor("RED").setDescription(`Ping: ${bot.ws.ping}ms`)
+        embeds: [new MessageEmbed().setTitle("Pong!").setColor("RED").setDescription(`Ping: ${bot.ws.ping}ms`)]
     });
 }
 
