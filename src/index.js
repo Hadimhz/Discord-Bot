@@ -4,11 +4,26 @@ const fs = require('fs');
 const config = require('./config.json');
 
 const { loadCommands } = require('./utils/commandHandler');
+<<<<<<< Updated upstream
 let bot = new Discord.Client();
+=======
+let bot = new Discord.Client({
+
+    intents: ["GUILDS", "GUILD_MEMBERS", "GUILD_BANS",
+        "GUILD_INTEGRATIONS", "GUILD_WEBHOOKS", "GUILD_INVITES",
+        "GUILD_VOICE_STATES", "GUILD_PRESENCES", "GUILD_MESSAGES",
+        "GUILD_MESSAGE_REACTIONS", "GUILD_MESSAGE_TYPING", "DIRECT_MESSAGES",
+        "DIRECT_MESSAGE_REACTIONS", "DIRECT_MESSAGE_TYPING"],
+
+    allowedMentions: {
+        parse: ['users', 'roles', 'everyone'],
+        repliedUser: true
+    },
+})
+>>>>>>> Stashed changes
 
 exports.bot = bot;
 global.ROOT_PATH = __dirname;
-
 
 // Event Handler
 let events = fs.readdirSync(ROOT_PATH + '/events').filter(x => x.endsWith(".js"));

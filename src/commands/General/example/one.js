@@ -1,6 +1,6 @@
 
 module.exports.run = (bot, message, args) => {
-    message.channel.send('ONE!');
+    message.channel.send({ content: 'ONE!' });
 }
 
 /**
