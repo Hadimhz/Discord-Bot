@@ -2,5 +2,6 @@
 	"token": "",
 	"guild": "",
 	"prefix": ".",
-	"missing_permission": "You require the `{PERMISSION}` permission to use this command."
+	"missing_permission": "You require the `{PERMISSION}` permission to use this command.",
+	"missing_role": "You require the `{ROLE}` role to use this command"
 }
